@@ -1,0 +1,111 @@
+{
+  "name": "cryptointel-data-system",
+  "version": "1.0.0",
+  "description": "Multi-source crypto intelligence data collection and analysis system with x402 integration",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "test": "vitest",
+    "test:integration": "./scripts/test.sh",
+    "test:coverage": "vitest --coverage",
+    "test:all": "npm run test && npm run test:integration",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/",
+    "db:migrate": "wrangler d1 execute CRYPTOINTEL_DB --local --file=schema.sql",
+    "db:seed": "wrangler d1 execute CRYPTOINTEL_DB --file=seed.sql",
+    "db:backup": "wrangler d1 export CRYPTOINTEL_DB --output=backup.sql",
+    "logs": "wrangler tail",
+    "metrics": "wrangler analytics",
+    "build": "npm run lint && npm run test:all",
+    "local": "wrangler dev --local --persist-to .wrangler/state"
+  },
+  "keywords": [
+    "crypto",
+    "intelligence",
+    "data",
+    "analysis",
+    "cloudflare",
+    "workers",
+    "d1",
+    "x402",
+    "blockchain",
+    "trading",
+    "signals"
+  ],
+  "author": "Kilo Code",
+  "license": "MIT",
+  "dependencies": {
+    "hono": "^4.0.0",
+    "@hono/node-server": "^1.8.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "@types/node": "^20.11.0",
+    "wrangler": "^3.30.0",
+    "vitest": "^1.2.0",
+    "@vitest/coverage-v8": "^1.2.0",
+    "eslint": "^8.56.0",
+    "@eslint/js": "^8.56.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mkc909/tradermind.git",
+    "directory": "cryptointel-data-system"
+  },
+  "bugs": {
+    "url": "https://github.com/mkc909/tradermind/issues"
+  },
+  "homepage": "https://github.com/mkc909/tradermind/tree/main/cryptointel-data-system",
+  "wrangler": {
+    "config": "wrangler.toml"
+  },
+  "eslintConfig": {
+    "extends": [
+      "@eslint/js/recommended"
+    ],
+    "env": {
+      "browser": true,
+      "es2022": true,
+      "worker": true
+    },
+    "parserOptions": {
+      "ecmaVersion": 2022,
+      "sourceType": "module"
+    },
+    "rules": {
+      "no-unused-vars": "warn",
+      "no-console": "warn",
+      "prefer-const": "error"
+    }
+  },
+  "prettier": {
+    "semi": true,
+    "trailingComma": "es5",
+    "singleQuote": true,
+    "printWidth": 100,
+    "tabWidth": 2
+  },
+  "vitest": {
+    "environment": "miniflare",
+    "testTimeout": 30000,
+    "coverage": {
+      "provider": "v8",
+      "reporter": ["text", "json", "html"],
+      "exclude": [
+        "node_modules/",
+        "test/",
+        "**/*.test.js",
+        "**/*.spec.js"
+      ]
+    }
+  }
+}

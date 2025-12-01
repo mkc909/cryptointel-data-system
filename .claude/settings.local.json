@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir)",
+      "Bash(git --version)",
+      "Bash(mkdir \"C:\\dev\\GITHUB_MKC909_REPOS\\cryptointel-data-system\\migrations\")",
+      "Bash(npm run lint -- src/enhanced-dashboard.js)",
+      "Bash(node --check \"C:\\dev\\GITHUB_MKC909_REPOS\\cryptointel-data-system\\src\\enhanced-dashboard.js\")",
+      "Bash(powershell -Command \"node --check ''C:\\dev\\GITHUB_MKC909_REPOS\\cryptointel-data-system\\src\\enhanced-dashboard.js''\")",
+      "Bash(chmod +x /c/dev/GITHUB_MKC909_REPOS/cryptointel-data-system/scripts/verify-performance-optimizations.sh)",
+      "Bash(where gh)",
+      "Bash(where git)",
+      "Bash(powershell.exe -Command \"Get-Command gh -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(echo $SHELL)",
+      "Bash(export PATH=\"/c/Program Files/Git/cmd:$PATH\")",
+      "Bash(cat \"/c/dev/GITHUB_MKC909_REPOS/cryptointel-data-system/package.json\")",
+      "Bash(git init)",
+      "Bash(git remote add origin https://github.com/mkc909/cryptointel-data-system.git)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo list mkc909 --limit 50)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo create mkc909/cryptointel-data-system --private --description \"Multi-source crypto intelligence data collection and analysis system with x402 integration\" --confirm)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" label create enhancement --description \"New feature or request\" --color \"a2eeef\")",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" label create performance --description \"Performance improvements\" --color \"d4c5f9\")",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" label create deployment --description \"Deployment related tasks\" --color \"0e8a16\")",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" issue edit 1 --add-label \"enhancement,performance,deployment\")",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" issue view 1)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://cryptointel-data-production.magicmike.workers.dev/health)",
+      "Bash(powershell -Command \"(Invoke-WebRequest -Uri ''https://cryptointel-data-production.magicmike.workers.dev/health'' -UseBasicParsing).StatusCode\")",
+      "Bash(wrangler whoami)",
+      "Bash(npm run logs)",
+      "Bash(cmd.exe /c \"curl --version\")",
+      "Bash(./validate-deployment.bat)",
+      "Bash(npx wrangler whoami)",
+      "Bash(powershell.exe -Command \"Invoke-WebRequest -Uri ''https://cryptointel-data-production.magicmike.workers.dev/health'' -UseBasicParsing | Select-Object -ExpandProperty StatusCode\")",
+      "Bash(npm run lint)",
+      "Bash(gh auth status)",
+      "Bash(/c/Program Files/Git/cmd/git.exe remote -v)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

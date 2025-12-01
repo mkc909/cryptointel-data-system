@@ -1,0 +1,48 @@
+name = "cryptointel-data-free"
+main = "src/index-free.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables - NO API KEYS NEEDED!
+[vars]
+ENVIRONMENT = "development"
+USE_FREE_APIS = true
+PRIMARY_SOURCE = "coingecko_free"
+FALLBACK_SOURCE = "coincap"
+
+# KV namespace for caching API responses
+[[kv_namespaces]]
+binding = "CRYPTOINTEL_CACHE"
+id = "19ca3026330a4c1eaa94211587f295b8"
+preview_id = "19ca3026330a4c1eaa94211587f295b8"
+
+# D1 database for signals and market data
+[[d1_databases]]
+binding = "CRYPTOINTEL_DB"
+database_name = "CRYPTOINTEL_DB"
+database_id = "25a386f3-c20a-4b85-bfe9-56e5c0e053ab"
+
+# Cron triggers for scheduled data collection
+[triggers]
+crons = ["*/15 * * * *"]
+
+# Development configuration
+[env.development]
+vars = { ENVIRONMENT = "development", USE_FREE_APIS = true }
+
+# Production configuration
+[env.production]
+name = "cryptointel-data-production-free"
+vars = { ENVIRONMENT = "production", USE_FREE_APIS = true }
+
+# Production KV namespace
+[[env.production.kv_namespaces]]
+binding = "CRYPTOINTEL_CACHE"
+id = "19ca3026330a4c1eaa94211587f295b8"
+preview_id = "19ca3026330a4c1eaa94211587f295b8"
+
+# Production D1 database
+[[env.production.d1_databases]]
+binding = "CRYPTOINTEL_DB"
+database_name = "CRYPTOINTEL_DB"
+database_id = "25a386f3-c20a-4b85-bfe9-56e5c0e053ab"
