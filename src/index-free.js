@@ -185,12 +185,12 @@ app.get('/market-analysis', async (c) => {
 /**
  * Dashboard routes
  */
-app.get('/dashboard', dashboard);
-app.get('/dashboard/*', dashboard);
-app.get('/intelligence-dashboard', intelligenceDashboard);
-app.get('/intelligence-dashboard/*', intelligenceDashboard);
-app.get('/enhanced-dashboard', enhancedDashboard);
-app.get('/enhanced-dashboard/*', enhancedDashboard);
+app.route('/dashboard', dashboard);
+app.route('/dashboard/*', dashboard);
+app.route('/intelligence-dashboard', intelligenceDashboard);
+app.route('/intelligence-dashboard/*', intelligenceDashboard);
+app.route('/enhanced-dashboard', enhancedDashboard);
+app.route('/enhanced-dashboard/*', enhancedDashboard);
 
 /**
  * Dashboard API endpoints
