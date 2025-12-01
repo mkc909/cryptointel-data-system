@@ -58,13 +58,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mkc909/tradermind.git",
-    "directory": "cryptointel-data-system"
+    "url": "https://github.com/mkc909/cryptointel-data-system.git"
   },
   "bugs": {
-    "url": "https://github.com/mkc909/tradermind/issues"
+    "url": "https://github.com/mkc909/cryptointel-data-system/issues"
   },
-  "homepage": "https://github.com/mkc909/tradermind/tree/main/cryptointel-data-system",
+  "homepage": "https://github.com/mkc909/cryptointel-data-system#readme",
   "wrangler": {
     "config": "wrangler.toml"
   },
