@@ -330,3 +330,17 @@ async function initializeDatabase(env) {
 
   console.log('Database schema initialized');
 }
+
+/**
+ * Scheduled event handler for data collection
+ */
+export async function scheduled(event, env, ctx) {
+  console.log('Running scheduled FREE data collection at:', new Date().toISOString());
+  
+  try {
+    const results = await collectFreeData(env);
+    console.log('Scheduled collection results:', results);
+  } catch (error) {
+    console.error('Scheduled job error:', error);
+  }
+}
