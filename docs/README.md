@@ -12,6 +12,7 @@ Welcome to the CryptoIntel Data System documentation. This folder contains compr
 ### 📊 API Documentation
 - **[CoinMarketCap DEX APIs](coinmarketcap-dex-apis.md)** - Complete guide to CoinMarketCap's DEX API suite
 - **[Enhanced Dashboard APIs](dashboard-guide.md#api-endpoints)** - Real-time analytics and filtering APIs
+- **[Advanced Signal Detection](advanced-signal-detection.md)** - ML-based signal detection and pattern recognition
 - **[x402 Payment Integration](../README.md#-x402-integration)** - Payment system documentation
 
 ### ⚡ Performance & Optimization

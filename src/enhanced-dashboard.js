@@ -359,7 +359,7 @@ enhancedDashboard.get('/api/signals', async (c) => {
 
     if (entity) {
       query += ' AND (s.entity LIKE ? OR em.entity_name LIKE ?)';
-      params.push(`%${entity}%`, `%${entity}%`);
+      params.push('%' + entity + '%', '%' + entity + '%');
     }
 
     if (minConfidence > 0) {
@@ -554,18 +554,18 @@ enhancedDashboard.get('/api/signals/advanced', async (c) => {
 
     // Apply filters
     if (types.length > 0) {
-      query += ` AND s.type IN (${types.map(() => '?').join(',')})`;
+      query += ' AND s.type IN (' + types.map(() => '?').join(',') + ')';
       params.push(...types);
     }
 
     if (sources.length > 0) {
-      query += ` AND s.source IN (${sources.map(() => '?').join(',')})`;
+      query += ' AND s.source IN (' + sources.map(() => '?').join(',') + ')';
       params.push(...sources);
     }
 
     if (entity) {
       query += ` AND em.entity_name LIKE ?`;
-      params.push(`%${entity}%`);
+      params.push('%' + entity + '%');
     }
 
     if (minConfidence > 0) {
@@ -651,14 +651,14 @@ enhancedDashboard.get('/api/export', async (c) => {
       return c.text(csv, {
         headers: {
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="${dataType}_export_${Date.now()}.csv"`
+          'Content-Disposition': 'attachment; filename="' + dataType + '_export_' + Date.now() + '.csv"'
         }
       });
     }
 
     return c.json(data, {
       headers: {
-        'Content-Disposition': `attachment; filename="${dataType}_export_${Date.now()}.json"`
+        'Content-Disposition': 'attachment; filename="' + dataType + '_export_' + Date.now() + '.json"'
       }
     });
 
@@ -1065,6 +1065,17 @@ function generateEnhancedDashboardHTML() {
             100% { transform: rotate(360deg); }
         }
 
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -1259,11 +1270,275 @@ function generateEnhancedDashboardHTML() {
         // Chart instances
         let signalsChart, marketChart, revenueChart, entitiesChart;
         let currentFilter = 'all';
+        let wsClient = null;
+
+        // WebSocket Client for real-time updates
+        class CryptoIntelWebSocket {
+            constructor() {
+                this.ws = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 1000;
+                this.isConnected = false;
+            }
+
+            connect() {
+                try {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${window.location.host}/ws`;
+                    
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.isConnected = true;
+                        this.reconnectAttempts = 0;
+                        
+                        // Subscribe to all channels
+                        this.subscribe('prices');
+                        this.subscribe('signals');
+                        this.subscribe('market');
+                        
+                        // Update connection status
+                        this.updateConnectionStatus('Connected');
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleMessage(message);
+                        } catch (error) {
+                            console.error('WebSocket message error:', error);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        console.log('WebSocket disconnected');
+                        this.isConnected = false;
+                        this.updateConnectionStatus('Disconnected');
+                        this.attemptReconnect();
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.updateConnectionStatus('Error');
+                    };
+
+                } catch (error) {
+                    console.error('WebSocket connection error:', error);
+                }
+            }
+
+            subscribe(channel) {
+                if (this.isConnected && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'subscribe',
+                        channel: channel
+                    }));
+                }
+            }
+
+            unsubscribe(channel) {
+                if (this.isConnected && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'unsubscribe',
+                        channel: channel
+                    }));
+                }
+            }
+
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'price_update':
+                        this.handlePriceUpdate(message.data);
+                        break;
+                    case 'signal_notification':
+                        this.handleSignalNotification(message.data);
+                        break;
+                    case 'market_data':
+                        this.handleMarketData(message.data);
+                        break;
+                    case 'pong':
+                        // Heartbeat response
+                        break;
+                    default:
+                        console.log('Unknown message type:', message.type);
+                }
+            }
+
+            handlePriceUpdate(data) {
+                // Update price displays in real-time
+                console.log('Price update:', data);
+                
+                // Update market chart if visible
+                if (marketChart && data.symbol) {
+                    // Find existing data point and update it
+                    const dataset = marketChart.data.datasets[0];
+                    const labelIndex = marketChart.data.labels.indexOf(data.symbol);
+                    
+                    if (labelIndex !== -1) {
+                        dataset.data[labelIndex] = data.price_change_24h || 0;
+                        dataset.backgroundColor[labelIndex] = (data.price_change_24h || 0) > 0 ?
+                            'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)';
+                        dataset.borderColor[labelIndex] = (data.price_change_24h || 0) > 0 ?
+                            '#10b981' : '#ef4444';
+                        marketChart.update('none');
+                    }
+                }
+            }
+
+            handleSignalNotification(data) {
+                console.log('New signal:', data);
+                
+                // Add to signals table if it matches current filter
+                if (currentFilter === 'all' || currentFilter === data.type) {
+                    this.addSignalToTable(data);
+                }
+                
+                // Update signals count
+                const signalsCountEl = document.getElementById('signalsCount');
+                const currentCount = parseInt(signalsCountEl.textContent) || 0;
+                signalsCountEl.textContent = (currentCount + 1) + ' signals';
+                
+                // Show notification
+                this.showSignalNotification(data);
+            }
+
+            handleMarketData(data) {
+                console.log('Market data:', data);
+                // Update market status indicators
+                updateLastUpdateTime();
+            }
+
+            addSignalToTable(signal) {
+                const tbody = document.getElementById('signalsTable');
+                
+                // Remove "No signals found" message if present
+                const noSignalsRow = tbody.querySelector('td[colspan="6"]');
+                if (noSignalsRow) {
+                    tbody.innerHTML = '';
+                }
+                
+                const row = document.createElement('tr');
+                
+                const confidence = (signal.confidence_score * 100).toFixed(0);
+                const confidenceBadge = confidence >= 70 ? 'badge-success' :
+                                      confidence >= 50 ? 'badge-warning' : 'badge-danger';
+                
+                const sentiment = signal.entity_sentiment || 0;
+                const sentimentBadge = sentiment > 0 ? 'badge-success' :
+                                      sentiment < 0 ? 'badge-danger' : 'badge-info';
+                
+                row.innerHTML = \`
+                    <td><span class="badge badge-info">\${signal.source}</span></td>
+                    <td>\${signal.type.replace('_', ' ')}</td>
+                    <td><strong>\${signal.entity_name || signal.entity || 'N/A'}</strong></td>
+                    <td><span class="badge \${confidenceBadge}">\${confidence}%</span></td>
+                    <td><span class="badge \${sentimentBadge}">\${sentiment > 0 ? '↑' : sentiment < 0 ? '↓' : '→'} \${sentiment.toFixed(2)}</span></td>
+                    <td>\${formatTime(signal.timestamp)}</td>
+                \`;
+                
+                // Add to top of table
+                tbody.insertBefore(row, tbody.firstChild);
+                
+                // Limit table to 50 rows
+                while (tbody.children.length > 50) {
+                    tbody.removeChild(tbody.lastChild);
+                }
+            }
+
+            showSignalNotification(signal) {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = 'signal-notification';
+                notification.innerHTML = \`
+                    <div class="notification-content">
+                        <strong>New \${signal.type.replace('_', ' ')} Signal</strong><br>
+                        \${signal.entity_name || signal.entity || 'N/A'} - \${signal.source}
+                    </div>
+                    <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+                \`;
+                
+                // Add styles
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: var(--bg-primary);
+                    border: 1px solid var(--border);
+                    border-radius: 8px;
+                    padding: 1rem;
+                    margin-bottom: 0.5rem;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    z-index: 1000;
+                    max-width: 300px;
+                    animation: slideIn 0.3s ease-out;
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 5000);
+            }
+
+            updateConnectionStatus(status) {
+                const statusDot = document.querySelector('.status-dot');
+                const statusText = document.getElementById('lastUpdate');
+                
+                switch (status) {
+                    case 'Connected':
+                        statusDot.style.background = '#10b981';
+                        statusText.textContent = 'Live (WebSocket)';
+                        break;
+                    case 'Disconnected':
+                        statusDot.style.background = '#ef4444';
+                        statusText.textContent = 'Disconnected';
+                        break;
+                    case 'Error':
+                        statusDot.style.background = '#f59e0b';
+                        statusText.textContent = 'Connection Error';
+                        break;
+                    default:
+                        statusDot.style.background = '#6b7280';
+                        statusText.textContent = 'Connecting...';
+                }
+            }
+
+            attemptReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    console.log(\`Attempting to reconnect (\${this.reconnectAttempts}/\${this.maxReconnectAttempts})\`);
+                    
+                    setTimeout(() => {
+                        this.connect();
+                    }, this.reconnectDelay * this.reconnectAttempts);
+                } else {
+                    console.log('Max reconnection attempts reached');
+                    this.updateConnectionStatus('Error');
+                }
+            }
+
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+                this.isConnected = false;
+            }
+        }
 
         // Initialize dashboard
         async function initDashboard() {
             await loadDashboard();
             startAutoRefresh();
+            
+            // Initialize WebSocket connection
+            wsClient = new CryptoIntelWebSocket();
+            wsClient.connect();
         }
 
         // Load all dashboard data
@@ -1589,7 +1864,7 @@ function generateEnhancedDashboardHTML() {
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.querySelector(\`[data-type="\${type}"]\`).classList.add('active');
+            document.querySelector('[data-type="' + type + '"]').classList.add('active');
 
             // Reload signals
             loadSignals(type);

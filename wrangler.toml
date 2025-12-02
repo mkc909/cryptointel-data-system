@@ -1,7 +1,16 @@
 name = "cryptointel-data-dev"
-main = "src/index.js"
+main = "src/index-free-v2.js"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
+# Durable Objects for WebSocket connections
+[[durable_objects.bindings]]
+name = "WEBSOCKET_CONNECTIONS"
+class_name = "WebSocketConnection"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["WebSocketConnection"]
+
 
 # Environment variables
 [vars]
