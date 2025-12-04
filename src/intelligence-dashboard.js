@@ -1,6 +1,6 @@
 /**
- * x402 Transaction Intelligence Dashboard
- * Real-time analytics and monitoring for x402 ecosystem
+ * Crypto Intelligence Dashboard - FREE API Version
+ * Real-time analytics and monitoring for crypto signals and market data
  */
 
 import { Hono } from 'hono';
@@ -13,51 +13,57 @@ const dashboard = new Hono();
  */
 dashboard.get('/', async (c) => {
   try {
-    // Get transaction analytics
-    const analytics = await c.env.CRYPTOINTEL_DB.prepare(`
-      SELECT 
-        tool_id,
-        SUM(amount) as total_revenue,
-        COUNT(*) as transaction_count,
-        AVG(amount) as avg_transaction_value
-      FROM transactions 
-      WHERE status = 'confirmed' AND timestamp > ?
-      GROUP BY tool_id
-      ORDER BY total_revenue DESC
-    `).bind(Date.now() - (30 * 24 * 60 * 60 * 1000)).all();
+    // Get signal analytics
+    const signalAnalytics = await c.env.CRYPTOINTEL_DB.prepare(`
+      SELECT
+        source,
+        type,
+        COUNT(*) as signal_count,
+        AVG(confidence) as avg_confidence
+      FROM signals
+      WHERE timestamp > ?
+      GROUP BY source, type
+      ORDER BY signal_count DESC
+    `).bind(Date.now() - (24 * 60 * 60 * 1000)).all();
 
-    // Get daily revenue trend
-    const dailyRevenue = await c.env.CRYPTOINTEL_DB.prepare(`
-      SELECT 
+    // Get daily signal trend
+    const dailySignals = await c.env.CRYPTOINTEL_DB.prepare(`
+      SELECT
         DATE(datetime(timestamp, 'unixepoch')) as date,
-        SUM(amount) as daily_revenue,
-        COUNT(*) as daily_transactions
-      FROM transactions 
-      WHERE status = 'confirmed' AND timestamp > ?
+        COUNT(*) as daily_signals,
+        COUNT(DISTINCT source) as active_sources
+      FROM signals
+      WHERE timestamp > ?
       GROUP BY date
       ORDER BY date DESC
       LIMIT 14
     `).bind(Date.now() - (14 * 24 * 60 * 60 * 1000)).all();
 
-    // Get recent transactions
-    const recentTransactions = await c.env.CRYPTOINTEL_DB.prepare(`
-      SELECT * FROM transactions 
-      ORDER BY timestamp DESC 
+    // Get recent signals
+    const recentSignals = await c.env.CRYPTOINTEL_DB.prepare(`
+      SELECT * FROM signals
+      ORDER BY timestamp DESC
       LIMIT 10
     `).all();
 
-    // Get top users
-    const topUsers = await c.env.CRYPTOINTEL_DB.prepare(`
-      SELECT 
-        user_wallet,
-        SUM(amount) as total_spent,
-        COUNT(*) as transaction_count
-      FROM transactions 
-      WHERE status = 'confirmed'
-      GROUP BY user_wallet
-      ORDER BY total_spent DESC
+    // Get top entities mentioned
+    const topEntities = await c.env.CRYPTOINTEL_DB.prepare(`
+      SELECT
+        entity_name,
+        COUNT(*) as mention_count,
+        MAX(confidence) as max_confidence
+      FROM signals
+      WHERE entity_name IS NOT NULL AND entity_name != ''
+      GROUP BY entity_name
+      ORDER BY mention_count DESC
       LIMIT 5
     `).all();
+
+    // Ensure all data variables are arrays to prevent errors
+    const safeSignalAnalytics = Array.isArray(signalAnalytics) ? signalAnalytics : [];
+    const safeDailySignals = Array.isArray(dailySignals) ? dailySignals : [];
+    const safeRecentSignals = Array.isArray(recentSignals) ? recentSignals : [];
+    const safeTopEntities = Array.isArray(topEntities) ? topEntities : [];
 
     return c.html(html`
 <!DOCTYPE html>
@@ -123,9 +129,22 @@ dashboard.get('/', async (c) => {
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Revenue</dt>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Signals</dt>
                 <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  ${analytics.reduce((sum, a) => sum + parseFloat(a.total_revenue || 0), 0).toFixed(4)} ETH
+                  ${(() => {
+                    console.log('DEBUG: About to call reduce on safeSignalAnalytics');
+                    console.log('DEBUG: safeSignalAnalytics:', safeSignalAnalytics);
+                    console.log('DEBUG: typeof safeSignalAnalytics:', typeof safeSignalAnalytics);
+                    console.log('DEBUG: Array.isArray(safeSignalAnalytics):', Array.isArray(safeSignalAnalytics));
+                    try {
+                      const result = (safeSignalAnalytics || []).reduce((sum, a) => sum + parseInt(a.signal_count || 0), 0);
+                      console.log('DEBUG: reduce result:', result);
+                      return result;
+                    } catch (error) {
+                      console.log('DEBUG: reduce error:', error);
+                      return 0;
+                    }
+                  })()}
                 </dd>
               </dl>
             </div>
@@ -141,10 +160,8 @@ dashboard.get('/', async (c) => {
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Transactions</dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  ${analytics.reduce((sum, a) => sum + parseInt(a.transaction_count || 0), 0)}
-                </dd>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Signal Sources</dt>
+                <dd class="text-lg font-medium text-gray-900 dark:text-white">${(safeSignalAnalytics || []).length}</dd>
               </dl>
             </div>
           </div>
@@ -159,9 +176,9 @@ dashboard.get('/', async (c) => {
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Avg Transaction</dt>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Avg Confidence</dt>
                 <dd class="text-lg font-medium text-gray-900 dark:text-white">
-                  ${(analytics.reduce((sum, a) => sum + parseFloat(a.avg_transaction_value || 0), 0) / Math.max(analytics.length, 1)).toFixed(4)} ETH
+                  ${((safeSignalAnalytics || []).reduce((sum, a) => sum + parseFloat(a.avg_confidence || 0), 0) / Math.max((safeSignalAnalytics || []).length, 1)).toFixed(2)}%
                 </dd>
               </dl>
             </div>
@@ -177,8 +194,8 @@ dashboard.get('/', async (c) => {
             </div>
             <div class="ml-5 w-0 flex-1">
               <dl>
-                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Active Tools</dt>
-                <dd class="text-lg font-medium text-gray-900 dark:text-white">${analytics.length}</dd>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Active Sources</dt>
+                <dd class="text-lg font-medium text-gray-900 dark:text-white">${(safeDailySignals || []).length}</dd>
               </dl>
             </div>
           </div>
@@ -187,42 +204,42 @@ dashboard.get('/', async (c) => {
 
       <!-- Charts Section -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- Revenue by Tool -->
+        <!-- Signals by Source -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Revenue by Tool</h3>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Signals by Source</h3>
           <canvas id="revenueChart" width="400" height="200"></canvas>
         </div>
 
-        <!-- Daily Revenue Trend -->
+        <!-- Daily Signal Trend -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Daily Revenue Trend</h3>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Daily Signal Trend</h3>
           <canvas id="trendChart" width="400" height="200"></canvas>
         </div>
       </div>
 
       <!-- Tables Section -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Recent Transactions -->
+        <!-- Recent Signals -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Recent Transactions</h3>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Recent Signals</h3>
           </div>
           <div class="overflow-hidden">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead class="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tool</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
                 </tr>
               </thead>
               <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                ${recentTransactions.map(tx => html`
+                ${(safeRecentSignals || []).map(signal => html`
                   <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${tx.tool_id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${tx.amount} ETH</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${signal.source}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${signal.type}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      ${new Date(tx.timestamp * 1000).toLocaleString()}
+                      ${new Date(signal.timestamp).toLocaleString()}
                     </td>
                   </tr>
                 `).join('')}
@@ -231,28 +248,26 @@ dashboard.get('/', async (c) => {
           </div>
         </div>
 
-        <!-- Top Users -->
+        <!-- Top Entities -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Top Users</h3>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Top Entities</h3>
           </div>
           <div class="overflow-hidden">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead class="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Wallet</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Spent</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Transactions</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Entity</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Mentions</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Confidence</th>
                 </tr>
               </thead>
               <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                ${topUsers.map(user => html`
+                ${(safeTopEntities || []).map(entity => html`
                   <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      ${user.user_wallet.substring(0, 8)}...${user.user_wallet.substring(user.user_wallet.length - 6)}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${user.total_spent} ETH</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${user.transaction_count}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${entity.entity_name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${entity.mention_count}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${(entity.max_confidence * 100).toFixed(1)}%</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -279,14 +294,14 @@ dashboard.get('/', async (c) => {
       localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
     });
 
-    // Revenue by Tool Chart
+    // Signals by Source Chart
     const revenueCtx = document.getElementById('revenueChart').getContext('2d');
     new Chart(revenueCtx, {
       type: 'doughnut',
       data: {
-        labels: ${JSON.stringify(analytics.map(a => a.tool_id))},
+        labels: ${JSON.stringify((safeSignalAnalytics || []).map(a => a.source))},
         datasets: [{
-          data: ${JSON.stringify(analytics.map(a => parseFloat(a.total_revenue || 0)))},
+          data: ${JSON.stringify((safeSignalAnalytics || []).map(a => parseInt(a.signal_count || 0)))},
           backgroundColor: [
             '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
           ],
@@ -307,15 +322,15 @@ dashboard.get('/', async (c) => {
       }
     });
 
-    // Daily Revenue Trend Chart
+    // Daily Signal Trend Chart
     const trendCtx = document.getElementById('trendChart').getContext('2d');
     new Chart(trendCtx, {
       type: 'line',
       data: {
-        labels: ${JSON.stringify(dailyRevenue.map(d => d.date))},
+        labels: ${JSON.stringify((safeDailySignals || []).map(d => d.date))},
         datasets: [{
-          label: 'Daily Revenue (ETH)',
-          data: ${JSON.stringify(dailyRevenue.map(d => parseFloat(d.daily_revenue || 0)))},
+          label: 'Daily Signals',
+          data: ${JSON.stringify((safeDailySignals || []).map(d => parseInt(d.daily_signals || 0)))},
           borderColor: '#3b82f6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           tension: 0.4,

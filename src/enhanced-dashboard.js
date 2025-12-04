@@ -1285,7 +1285,7 @@ function generateEnhancedDashboardHTML() {
             connect() {
                 try {
                     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                    const wsUrl = `${protocol}//${window.location.host}/ws`;
+                    const wsUrl = protocol + '//' + window.location.host + '/ws';
                     
                     this.ws = new WebSocket(wsUrl);
                     
@@ -1453,21 +1453,14 @@ function generateEnhancedDashboardHTML() {
                 notification.className = 'signal-notification';
                 notification.innerHTML = \`
                     <div class="notification-content">
-                        <strong>New \${signal.type.replace('_', ' ')} Signal</strong><br>
+                        <strong>New ${signal.type.replace('_', ' ')} Signal</strong><br>
                         \${signal.entity_name || signal.entity || 'N/A'} - \${signal.source}
                     </div>
                     <button class="notification-close" onclick="this.parentElement.remove()">×</button>
                 \`;
                 
                 // Add styles
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: var(--bg-primary);
-                    border: 1px solid var(--border);
-                    border-radius: 8px;
-                    padding: 1rem;
+                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 1rem;';
                     margin-bottom: 0.5rem;
                     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                     z-index: 1000;
@@ -1511,7 +1504,7 @@ function generateEnhancedDashboardHTML() {
             attemptReconnect() {
                 if (this.reconnectAttempts < this.maxReconnectAttempts) {
                     this.reconnectAttempts++;
-                    console.log(\`Attempting to reconnect (\${this.reconnectAttempts}/\${this.maxReconnectAttempts})\`);
+                    console.log('Attempting to reconnect (' + this.reconnectAttempts + '/' + this.maxReconnectAttempts + ')');
                     
                     setTimeout(() => {
                         this.connect();
